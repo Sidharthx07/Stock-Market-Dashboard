@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <!-- Make the dashboard work well on phones -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Stock Market Dashboard</title>
+
+    <!-- Load Chart.js from a CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* Keep the page sizing predictable */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Set the basic page look */
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #172033;
+        }
+
+        /* Create the main dashboard container */
+        .container {
+            width: min(1400px, 94%);
+            margin: 0 auto;
+        }
+
+        /* Style the top heading */
+        header {
+            padding: 28px 0 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        header p {
+            margin: 7px 0 0;
+            color: #667085;
+        }
+
+        /* Create white cards used throughout the dashboard */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e4e7ec;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
+        }
+
+        /* Arrange the API settings area */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Stack form controls vertically */
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Style form labels */
+        label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #344054;
+        }
+
+        /* Style text and password inputs */
+        input[type="text"],
+        input[type="password"],
+        input[type="date"] {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 10px;
+            outline: none;
+            background: white;
+            font-size: 14px;
+        }
+
+        /* Add a focus effect to inputs */
+        input:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        /* Put password input and show button together */
+        .password-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .password-row input {
+            flex: 1;
+        }
+
+        /* Style buttons */
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 15px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            background: #e9d5ff;
+            color: #581c87;
+        }
+
+        /* Give buttons a small hover effect */
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(0.98);
+        }
+
+        /* Main purple action button */
+        .primary {
+            background: #7c3aed;
+            color: white;
+        }
+
+        /* Refresh button style */
+        .refresh {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        /* CSV button style */
+        .download {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* Put the main action buttons together */
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        /* Style the small API key information text */
+        .small-note {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #667085;
+            margin-top: 8px;
+        }
+
+        /* Style the API key link */
+        .small-note a {
+            color: #6d28d9;
+            text-decoration: none;
+        }
+
+        /* Arrange symbol chips */
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        /* Style symbol chips */
+        .chip {
+            background: #f2f4f7;
+            color: #344054;
+            border: 1px solid #d0d5dd;
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Highlight chips when hovered */
+        .chip:hover {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        /* Create the status area */
+        .status-box {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        /* Style status messages */
+        #status {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* Show API call counter */
+        #apiCounter {
+            background: #f2f4f7;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* Create date filter section */
+        .date-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 12px;
+        }
+
+        /* Put quick date buttons on one row */
+        .quick-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 10px;
+        }
+
+        /* Style quick date buttons */
+        .quick-buttons button {
+            background: #f2f4f7;
+            color: #344054;
+            padding: 8px 11px;
+            font-size: 12px;
+        }
+
+        /* Highlight selected quick button */
+        .quick-buttons button.active {
+            background: #7c3aed;
+            color: white;
+        }
+
+        /* Create KPI card grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin: 16px 0;
+        }
+
+        /* Style each KPI card */
+        .kpi {
+            min-height: 110px;
+        }
+
+        .kpi-title {
+            color: #667085;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 800;
+            word-break: break-word;
+        }
+
+        /* Create the chart grid */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        /* Set a consistent chart height */
+        .chart-box {
+            height: 340px;
+        }
+
+        .chart-box canvas {
+            width: 100% !important;
+            height: 280px !important;
+        }
+
+        /* Make the table section scroll on small screens */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        /* Style the data table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        /* Style table cells */
+        th,
+        td {
+            padding: 11px 10px;
+            border-bottom: 1px solid #eaecf0;
+            text-align: right;
+            font-size: 13px;
+        }
+
+        /* Keep the first column left aligned */
+        th:first-child,
+        td:first-child {
+            text-align: left;
+        }
+
+        /* Style table header */
+        th {
+            background: #f9fafb;
+            color: #475467;
+            font-weight: 800;
+        }
+
+        /* Positive number style */
+        .positive {
+            color: #15803d;
+            font-weight: 700;
+        }
+
+        /* Negative number style */
+        .negative {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        /* Empty dashboard message */
+        .empty {
+            text-align: center;
+            padding: 35px;
+            color: #667085;
+        }
+
+        /* Style the footer */
+        footer {
+            text-align: center;
+            color: #667085;
+            font-size: 12px;
+            padding: 30px 0;
+        }
+
+        /* Make the layout mobile friendly */
+        @media (max-width: 900px) {
+            .controls,
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Make the layout extra small-screen friendly */
+        @media (max-width: 550px) {
+            header h1 {
+                font-size: 24px;
+            }
+
+            .date-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-row button {
+                flex: 1 1 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- This is the main page container -->
+    <div class="container">
+
+        <!-- This is the dashboard heading -->
+        <header>
+            <h1>📈 Stock Market Dashboard</h1>
+            <p>Weekly stock analysis powered by Alpha Vantage.</p>
+        </header>
+
+        <!-- This card contains API and stock controls -->
+        <section class="card">
+            <div class="controls">
+
+                <!-- This part collects the API key -->
+                <div class="field">
+                    <label for="apiKey">Alpha Vantage API Key</label>
+
+                    <div class="password-row">
+                        <input
+                            type="password"
+                            id="apiKey"
+                            placeholder="Enter your API key"
+                            autocomplete="off"
+                        >
+
+                        <button type="button" id="toggleKey">
+                            Show
+                        </button>
+                    </div>
+
+                    <label style="font-weight: normal;">
+                        <input type="checkbox" id="rememberKey">
+                        Remember key on this device
+                    </label>
+
+                    <div class="small-note">
+                        Your key stays in your browser.
+                        Get a free key at
+                        <a href="https://www.alphavantage.co/support/#api-key"
+                           target="_blank"
+                           rel="noopener">
+                            alphavantage.co/support/#api-key
+                        </a>
+                    </div>
+                </div>
+
+                <!-- This part collects the stock symbol -->
+                <div class="field">
+                    <label for="symbol">Stock Symbol</label>
+
+                    <input
+                        type="text"
+                        id="symbol"
+                        placeholder="Example: IBM"
+                        autocomplete="off"
+                    >
+
+                    <!-- These chips only fill the input -->
+                    <div class="chips">
+                        <button class="chip" data-symbol="IBM">IBM</button>
+                        <button class="chip" data-symbol="RELIANCE.BSE">RELIANCE.BSE</button>
+                        <button class="chip" data-symbol="TCS.BSE">TCS.BSE</button>
+                        <button class="chip" data-symbol="INFY.BSE">INFY.BSE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- These buttons are the only controls that can call the API -->
+            <div class="button-row">
+                <button class="primary" id="loadBtn">
+                    Load
+                </button>
+
+                <button class="refresh" id="refreshBtn">
+                    Refresh from API
+                </button>
+            </div>
+        </section>
+
+        <!-- This card shows API status and call count -->
+        <section class="card status-box">
+            <div id="status">
+                Enter a symbol and API key to begin.
+            </div>
+
+            <div id="apiCounter">
+                API calls used today: 0 of 25
+            </div>
+        </section>
+
+        <!-- This card contains date filters -->
+        <section class="card">
+
+            <!-- This is the date picker area -->
+            <div class="date-controls">
+
+                <div class="field">
+                    <label for="fromDate">From date</label>
+                    <input type="date" id="fromDate">
+                </div>
+
+                <div class="field">
+                    <label for="toDate">To date</label>
+                    <input type="date" id="toDate">
+                </div>
+
+            </div>
+
+            <!-- These buttons change dates without calling the API -->
+            <div>
+                <label>Quick range</label>
+
+                <div class="quick-buttons">
+                    <button data-range="3M">3M</button>
+                    <button data-range="6M">6M</button>
+                    <button data-range="1Y" class="active">1Y</button>
+                    <button data-range="3Y">3Y</button>
+                    <button data-range="5Y">5Y</button>
+                    <button data-range="YTD">YTD</button>
+                    <button data-range="MAX">Max</button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- These are the KPI cards -->
+        <section class="kpi-grid">
+
+            <div class="card kpi">
+                <div class="kpi-title">Latest Adjusted Close</div>
+                <div class="kpi-value" id="kpiClose">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Period Return</div>
+                <div class="kpi-value" id="kpiReturn">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Highest High</div>
+                <div class="kpi-value" id="kpiHigh">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Lowest Low</div>
+                <div class="kpi-value" id="kpiLow">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Average Weekly Volume</div>
+                <div class="kpi-value" id="kpiVolume">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Total Dividends</div>
+                <div class="kpi-value" id="kpiDividend">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Weekly Volatility</div>
+                <div class="kpi-value" id="kpiVolatility">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Maximum Drawdown</div>
+                <div class="kpi-value" id="kpiDrawdown">—</div>
+            </div>
+
+            <div class="card kpi">
+                <div class="kpi-title">Number of Weeks</div>
+                <div class="kpi-value" id="kpiWeeks">—</div>
+            </div>
+
+        </section>
+
+        <!-- These are the five chart areas -->
+        <section class="chart-grid">
+
+            <div class="card chart-box">
+                <h3>Adjusted Close, Close & 10-Week MA</h3>
+                <canvas id="priceChart"></canvas>
+            </div>
+
+            <div class="card chart-box">
+                <h3>Weekly Volume</h3>
+                <canvas id="volumeChart"></canvas>
+            </div>
+
+            <div class="card chart-box">
+                <h3>Weekly Return %</h3>
+                <canvas id="returnChart"></canvas>
+            </div>
+
+            <div class="card chart-box">
+                <h3>Weekly High to Low Range</h3>
+                <canvas id="rangeChart"></canvas>
+            </div>
+
+            <div class="card chart-box">
+                <h3>Dividends</h3>
+                <canvas id="dividendChart"></canvas>
+            </div>
+
+        </section>
+
+        <!-- This card contains the table and CSV button -->
+        <section class="card" style="margin-top: 16px;">
+
+            <div class="status-box">
+                <h3 style="margin: 0;">Last 12 Weeks</h3>
+
+                <button class="download" id="csvBtn">
+                    Download CSV
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Open</th>
+                            <th>High</th>
+                            <th>Low</th>
+                            <th>Close</th>
+                            <th>Adjusted Close</th>
+                            <th>Volume</th>
+                            <th>Dividend</th>
+                            <th>Weekly Return</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="stockTableBody">
+                        <tr>
+                            <td colspan="9" class="empty">
+                                Load a stock to see data.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+        </section>
+
+        <!-- This is the required footer -->
+        <footer>
+            For learning only. Not investment advice.
+        </footer>
+
+    </div>
+
+    <script>
+        /* Keep all dashboard data and chart objects in memory */
+        let allWeeks = [];
+        let filteredWeeks = [];
+        let currentSymbol = "";
+        let charts = {};
+
+        /* Store the localStorage names in one place */
+        const CACHE_PREFIX = "stockDashboardCache_";
+        const CALL_COUNT_KEY = "stockDashboardApiCalls";
+        const SAVED_KEY_KEY = "stockDashboardSavedApiKey";
+
+        /* Get today's date in the user's local timezone */
+        function getToday() {
+            const now = new Date();
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const day = String(now.getDate()).padStart(2, "0");
+
+            return `${year}-${month}-${day}`;
+        }
+
+        /* Update the API call counter shown on the page */
+        function updateApiCounter() {
+            const today = getToday();
+
+            let data;
+
+            try {
+                data = JSON.parse(
+                    localStorage.getItem(CALL_COUNT_KEY)
+                );
+            } catch {
+                data = null;
+            }
+
+            /* Reset the counter when the date changes */
+            if (!data || data.date !== today) {
+                data = {
+                    date: today,
+                    count: 0
+                };
+
+                localStorage.setItem(
+                    CALL_COUNT_KEY,
+                    JSON.stringify(data)
+                );
+            }
+
+            document.getElementById("apiCounter").textContent =
+                `API calls used today: ${data.count} of 25`;
+
+            return data.count;
+        }
+
+        /* Increase today's API call counter */
+        function increaseApiCounter() {
+            const today = getToday();
+
+            let data;
+
+            try {
+                data = JSON.parse(
+                    localStorage.getItem(CALL_COUNT_KEY)
+                );
+            } catch {
+                data = null;
+            }
+
+            if (!data || data.date !== today) {
+                data = {
+                    date: today,
+                    count: 0
+                };
+            }
+
+            data.count++;
+
+            localStorage.setItem(
+                CALL_COUNT_KEY,
+                JSON.stringify(data)
+            );
+
+            updateApiCounter();
+        }
+
+        /* Show a status message to the user */
+        function setStatus(message, type = "normal") {
+            const status = document.getElementById("status");
+
+            status.textContent = message;
+
+            if (type === "error") {
+                status.style.color = "#dc2626";
+            } else if (type === "success") {
+                status.style.color = "#15803d";
+            } else {
+                status.style.color = "#344054";
+            }
+        }
+
+        /* Show or hide the API key */
+        document.getElementById("toggleKey").addEventListener(
+            "click",
+            function () {
+                const input = document.getElementById("apiKey");
+
+                if (input.type === "password") {
+                    input.type = "text";
+                    this.textContent = "Hide";
+                } else {
+                    input.type = "password";
+                    this.textContent = "Show";
+                }
+            }
+        );
+
+        /* Load a remembered API key if the user saved one */
+        function loadRememberedKey() {
+            const savedKey =
+                localStorage.getItem(SAVED_KEY_KEY);
+
+            if (savedKey) {
+                document.getElementById("apiKey").value = savedKey;
+                document.getElementById("rememberKey").checked = true;
+            }
+        }
+
+        /* Save or remove the API key according to the checkbox */
+        function handleKeyStorage() {
+            const key =
+                document.getElementById("apiKey").value.trim();
+
+            const remember =
+                document.getElementById("rememberKey").checked;
+
+            if (remember && key) {
+                localStorage.setItem(
+                    SAVED_KEY_KEY,
+                    key
+                );
+            } else {
+                localStorage.removeItem(
+                    SAVED_KEY_KEY
+                );
+            }
+        }
+
+        /* Chips only fill the symbol box and never call the API */
+        document.querySelectorAll(".chip").forEach(
+            function (chip) {
+                chip.addEventListener("click", function () {
+                    document.getElementById("symbol").value =
+                        this.dataset.symbol;
+                });
+            }
+        );
+
+        /* Convert Alpha Vantage text values into numbers */
+        function numberValue(value) {
+            const number = Number(value);
+
+            return Number.isFinite(number)
+                ? number
+                : 0;
+        }
+
+        /* Convert Alpha Vantage JSON into an easier array */
+        function parseAlphaVantage(json) {
+            const series =
+                json["Weekly Adjusted Time Series"];
+
+            if (!series) {
+                return [];
+            }
+
+            return Object.entries(series)
+                .map(function ([date, values]) {
+                    return {
+                        date: date,
+                        open: numberValue(values["1. open"]),
+                        high: numberValue(values["2. high"]),
+                        low: numberValue(values["3. low"]),
+                        close: numberValue(values["4. close"]),
+                        adjustedClose: numberValue(
+                            values["5. adjusted close"]
+                        ),
+                        volume: numberValue(values["6. volume"]),
+                        dividend: numberValue(
+                            values["7. dividend amount"]
+                        )
+                    };
+                })
+                .sort(function (a, b) {
+                    return new Date(a.date) - new Date(b.date);
+                });
+        }
+
+        /* Check if Alpha Vantage returned a friendly error */
+        function getApiError(json) {
+            if (json["Error Message"]) {
+                return "Could not find that symbol";
+            }
+
+            if (json["Note"] || json["Information"]) {
+                const message =
+                    json["Note"] || json["Information"];
+
+                if (
+                    String(message)
+                        .toLowerCase()
+                        .includes("demo")
+                ) {
+                    return "Demo key works only for IBM. Please enter your own API key for other symbols.";
+                }
+
+                return "Daily limit reached. Try using cached stocks or try again tomorrow.";
+            }
+
+            return "";
+        }
+
+        /* Get today's cache for one stock */
+        function getCache(symbol) {
+            const key =
+                CACHE_PREFIX +
+                symbol.toUpperCase() +
+                "_" +
+                getToday();
+
+            try {
+                return JSON.parse(
+                    localStorage.getItem(key)
+                );
+            } catch {
+                return null;
+            }
+        }
+
+        /* Save the complete Alpha Vantage JSON */
+        function saveCache(symbol, json) {
+            const key =
+                CACHE_PREFIX +
+                symbol.toUpperCase() +
+                "_" +
+                getToday();
+
+            localStorage.setItem(
+                key,
+                JSON.stringify(json)
+            );
+        }
+
+        /* Call Alpha Vantage only when Load or Refresh asks for it */
+        async function fetchFromApi(symbol, apiKey) {
+
+            /* Stop API calls after the daily limit */
+            if (updateApiCounter() >= 25) {
+                setStatus(
+                    "Daily API limit reached. Use cached stocks or try again tomorrow.",
+                    "error"
+                );
+
+                return null;
+            }
+
+            /* Count this API request */
+            increaseApiCounter();
+
+            /* Build the Alpha Vantage URL */
+            const url =
+                "https://www.alphavantage.co/query" +
+                "?function=TIME_SERIES_WEEKLY_ADJUSTED" +
+                "&symbol=" + encodeURIComponent(symbol) +
+                "&apikey=" + encodeURIComponent(apiKey);
+
+            try {
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error("Network error");
+                }
+
+                const json = await response.json();
+
+                /* Check for API errors */
+                const apiError = getApiError(json);
+
+                if (apiError) {
+                    setStatus(apiError, "error");
+                    return null;
+                }
+
+                /* Check that actual stock data exists */
+                if (!json["Weekly Adjusted Time Series"]) {
+
+                    if (apiKey.toLowerCase() === "demo" &&
+                        symbol.toUpperCase() !== "IBM") {
+
+                        setStatus(
+                            "Demo key works only for IBM. Please enter your own API key for other symbols.",
+                            "error"
+                        );
+
+                    } else {
+                        setStatus(
+                            "Could not find that symbol",
+                            "error"
+                        );
+                    }
+
+                    return null;
+                }
+
+                /* Save the full JSON response */
+                saveCache(symbol, json);
+
+                setStatus(
+                    "Data loaded from Alpha Vantage API.",
+                    "success"
+                );
+
+                return json;
+
+            } catch (error) {
+
+                setStatus(
+                    "Could not connect to Alpha Vantage. Check your internet connection and try again.",
+                    "error"
+                );
+
+                return null;
+            }
+        }
+
+        /* Load a stock using the cache whenever possible */
+        async function loadStock(forceRefresh = false) {
+
+            /* Check whether Chart.js loaded */
+            if (typeof Chart === "undefined") {
+                setStatus(
+                    "Chart.js failed to load. Check your internet connection and refresh the page.",
+                    "error"
+                );
+
+                return;
+            }
+
+            const apiKey =
+                document.getElementById("apiKey")
+                    .value.trim();
+
+            const symbol =
+                document.getElementById("symbol")
+                    .value.trim()
+                    .toUpperCase();
+
+            /* Handle an empty API key */
+            if (!apiKey) {
+                setStatus(
+                    "Please type your Alpha Vantage API key.",
+                    "error"
+                );
+
+                return;
+            }
+
+            /* Handle an empty symbol */
+            if (!symbol) {
+                setStatus(
+                    "Please type a stock symbol.",
+                    "error"
+                );
+
+                return;
+            }
+
+            /* Save or remove the key based on the checkbox */
+            handleKeyStorage();
+
+            currentSymbol = symbol;
+
+            let json = null;
+
+            /* Normal Load first checks today's cache */
+            if (!forceRefresh) {
+                json = getCache(symbol);
+
+                if (json) {
+                    setStatus(
+                        "Data loaded from today's browser cache. No API call was made.",
+                        "success"
+                    );
+                }
+            }
+
+            /* Refresh always skips the cache */
+            if (!json) {
+                json = await fetchFromApi(
+                    symbol,
+                    apiKey
+                );
+            }
+
+            /* Stop if the API request failed */
+            if (!json) {
+                return;
+            }
+
+            /* Convert the JSON into usable weekly data */
+            allWeeks = parseAlphaVantage(json);
+
+            if (!allWeeks.length) {
+                setStatus(
+                    "Could not find usable data for that symbol.",
+                    "error"
+                );
+
+                return;
+            }
+
+            /* Set the default date range to 1 year */
+            setDefaultOneYearDates();
+
+            /* Update everything using browser-side data */
+            applyFilters();
+        }
+
+        /* Set the default date range to one year */
+        function setDefaultOneYearDates() {
+
+            const latest =
+                new Date(allWeeks[allWeeks.length - 1].date);
+
+            const oneYearAgo =
+                new Date(latest);
+
+            oneYearAgo.setFullYear(
+                latest.getFullYear() - 1
+            );
+
+            document.getElementById("fromDate").value =
+                formatDate(oneYearAgo);
+
+            document.getElementById("toDate").value =
+                formatDate(latest);
+
+            setActiveQuickButton("1Y");
+        }
+
+        /* Convert a JavaScript date into YYYY-MM-DD */
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month =
+                String(date.getMonth() + 1).padStart(2, "0");
+            const day =
+                String(date.getDate()).padStart(2, "0");
+
+            return `${year}-${month}-${day}`;
+        }
+
+        /* Set which quick button looks selected */
+        function setActiveQuickButton(range) {
+            document
+                .querySelectorAll(".quick-buttons button")
+                .forEach(function (button) {
+                    button.classList.toggle(
+                        "active",
+                        button.dataset.range === range
+                    );
+                });
+        }
+
+        /* Apply date filtering without using the API */
+        function applyFilters() {
+
+            if (!allWeeks.length) {
+                return;
+            }
+
+            const from =
+                document.getElementById("fromDate").value;
+
+            const to =
+                document.getElementById("toDate").value;
+
+            filteredWeeks = allWeeks.filter(
+                function (week) {
+
+                    return (
+                        (!from || week.date >= from) &&
+                        (!to || week.date <= to)
+                    );
+                }
+            );
+
+            updateKPIs();
+            updateCharts();
+            updateTable();
+        }
+
+        /* Change dates when a quick range is selected */
+        function applyQuickRange(range) {
+
+            if (!allWeeks.length) {
+                setStatus(
+                    "Load a stock first.",
+                    "error"
+                );
+
+                return;
+            }
+
+            const latest =
+                new Date(allWeeks[allWeeks.length - 1].date);
+
+            let start =
+                new Date(latest);
+
+            if (range === "3M") {
+                start.setMonth(
+                    start.getMonth() - 3
+                );
+            }
+
+            if (range === "6M") {
+                start.setMonth(
+                    start.getMonth() - 6
+                );
+            }
+
+            if (range === "1Y") {
+                start.setFullYear(
+                    start.getFullYear() - 1
+                );
+            }
+
+            if (range === "3Y") {
+                start.setFullYear(
+                    start.getFullYear() - 3
+                );
+            }
+
+            if (range === "5Y") {
+                start.setFullYear(
+                    start.getFullYear() - 5
+                );
+            }
+
+            if (range === "YTD") {
+                start = new Date(
+                    latest.getFullYear(),
+                    0,
+                    1
+                );
+            }
+
+            if (range === "MAX") {
+                start =
+                    new Date(allWeeks[0].date);
+            }
+
+            document.getElementById("fromDate").value =
+                formatDate(start);
+
+            document.getElementById("toDate").value =
+                formatDate(latest);
+
+            setActiveQuickButton(range);
+
+            applyFilters();
+        }
+
+        /* Calculate a simple standard deviation */
+        function standardDeviation(values) {
+
+            if (values.length < 2) {
+                return 0;
+            }
+
+            const mean =
+                values.reduce(
+                    (sum, value) => sum + value,
+                    0
+                ) / values.length;
+
+            const variance =
+                values.reduce(
+                    (sum, value) =>
+                        sum + Math.pow(value - mean, 2),
+                    0
+                ) / values.length;
+
+            return Math.sqrt(variance);
+        }
+
+        /* Calculate weekly returns */
+        function getWeeklyReturns(data) {
+
+            return data.map(
+                function (week, index) {
+
+                    if (index === 0) {
+                        return null;
+                    }
+
+                    const previous =
+                        data[index - 1].adjustedClose;
+
+                    if (!previous) {
+                        return null;
+                    }
+
+                    return (
+                        (week.adjustedClose - previous) /
+                        previous
+                    ) * 100;
+                }
+            );
+        }
+
+        /* Calculate the 10-week moving average */
+        function getMovingAverage(data, period = 10) {
+
+            return data.map(
+                function (week, index) {
+
+                    const start =
+                        Math.max(
+                            0,
+                            index - period + 1
+                        );
+
+                    const values =
+                        data
+                            .slice(start, index + 1)
+                            .map(
+                                item =>
+                                    item.adjustedClose
+                            );
+
+                    return (
+                        values.reduce(
+                            (sum, value) =>
+                                sum + value,
+                            0
+                        ) / values.length
+                    );
+                }
+            );
+        }
+
+        /* Calculate maximum drawdown */
+        function getMaxDrawdown(data) {
+
+            if (!data.length) {
+                return 0;
+            }
+
+            let peak =
+                data[0].adjustedClose;
+
+            let maxDrawdown = 0;
+
+            data.forEach(
+                function (week) {
+
+                    if (week.adjustedClose > peak) {
+                        peak = week.adjustedClose;
+                    }
+
+                    if (peak > 0) {
+                        const drawdown =
+                            (
+                                (week.adjustedClose - peak) /
+                                peak
+                            ) * 100;
+
+                        if (drawdown < maxDrawdown) {
+                            maxDrawdown = drawdown;
+                        }
+                    }
+                }
+            );
+
+            return maxDrawdown;
+        }
+
+        /* Format normal numbers */
+        function formatNumber(value, decimals = 2) {
+
+            if (!Number.isFinite(value)) {
+                return "—";
+            }
+
+            return value.toLocaleString(
+                "en-IN",
+                {
+                    minimumFractionDigits: decimals,
+                    maximumFractionDigits: decimals
+                }
+            );
+        }
+
+        /* Format large numbers such as volume */
+        function formatLargeNumber(value) {
+
+            if (!Number.isFinite(value)) {
+                return "—";
+            }
+
+            if (Math.abs(value) >= 1000000000) {
+                return (
+                    (value / 1000000000)
+                        .toFixed(2) + "B"
+                );
+            }
+
+            if (Math.abs(value) >= 1000000) {
+                return (
+                    (value / 1000000)
+                        .toFixed(2) + "M"
+                );
+            }
+
+            if (Math.abs(value) >= 1000) {
+                return (
+                    (value / 1000)
+                        .toFixed(2) + "K"
+                );
+            }
+
+            return formatNumber(value, 0);
+        }
+
+        /* Update all KPI cards */
+        function updateKPIs() {
+
+            if (!filteredWeeks.length) {
+
+                document
+                    .querySelectorAll(".kpi-value")
+                    .forEach(
+                        element =>
+                            element.textContent = "—"
+                    );
+
+                return;
+            }
+
+            const first =
+                filteredWeeks[0];
+
+            const last =
+                filteredWeeks[
+                    filteredWeeks.length - 1
+                ];
+
+            const highestHigh =
+                Math.max(
+                    ...filteredWeeks.map(
+                        week => week.high
+                    )
+                );
+
+            const lowestLow =
+                Math.min(
+                    ...filteredWeeks.map(
+                        week => week.low
+                    )
+                );
+
+            const averageVolume =
+                filteredWeeks.reduce(
+                    (sum, week) =>
+                        sum + week.volume,
+                    0
+                ) / filteredWeeks.length;
+
+            const totalDividends =
+                filteredWeeks.reduce(
+                    (sum, week) =>
+                        sum + week.dividend,
+                    0
+                );
+
+            const returns =
+                getWeeklyReturns(filteredWeeks)
+                    .filter(
+                        value => value !== null
+                    );
+
+            const volatility =
+                standardDeviation(returns);
+
+            const periodReturn =
+                first.adjustedClose !== 0
+                    ? (
+                        (
+                            last.adjustedClose -
+                            first.adjustedClose
+                        ) /
+                        first.adjustedClose
+                    ) * 100
+                    : 0;
+
+            const drawdown =
+                getMaxDrawdown(filteredWeeks);
+
+            document.getElementById("kpiClose")
+                .textContent =
+                formatNumber(
+                    last.adjustedClose
+                );
+
+            document.getElementById("kpiReturn")
+                .textContent =
+                periodReturn.toFixed(2) + "%";
+
+            document.getElementById("kpiReturn")
+                .className =
+                "kpi-value " +
+                (
+                    periodReturn >= 0
+                        ? "positive"
+                        : "negative"
+                );
+
+            document.getElementById("kpiHigh")
+                .textContent =
+                formatNumber(highestHigh);
+
+            document.getElementById("kpiLow")
+                .textContent =
+                formatNumber(lowestLow);
+
+            document.getElementById("kpiVolume")
+                .textContent =
+                formatLargeNumber(
+                    averageVolume
+                );
+
+            document.getElementById("kpiDividend")
+                .textContent =
+                formatNumber(
+                    totalDividends
+                );
+
+            document.getElementById("kpiVolatility")
+                .textContent =
+                volatility.toFixed(2) + "%";
+
+            document.getElementById("kpiDrawdown")
+                .textContent =
+                drawdown.toFixed(2) + "%";
+
+            document.getElementById("kpiDrawdown")
+                .className =
+                "kpi-value negative";
+
+            document.getElementById("kpiWeeks")
+                .textContent =
+                filteredWeeks.length;
+        }
+
+        /* Destroy old charts before drawing new ones */
+        function destroyCharts() {
+
+            Object.values(charts).forEach(
+                function (chart) {
+
+                    if (chart) {
+                        chart.destroy();
+                    }
+                }
+            );
+
+            charts = {};
+        }
+
+        /* Create all five charts */
+        function updateCharts() {
+
+            destroyCharts();
+
+            if (!filteredWeeks.length) {
+                return;
+            }
+
+            const labels =
+                filteredWeeks.map(
+                    week => week.date
+                );
+
+            const adjustedClose =
+                filteredWeeks.map(
+                    week => week.adjustedClose
+                );
+
+            const close =
+                filteredWeeks.map(
+                    week => week.close
+                );
+
+            const movingAverage =
+                getMovingAverage(
+                    filteredWeeks
+                );
+
+            const volume =
+                filteredWeeks.map(
+                    week => week.volume
+                );
+
+            const returns =
+                getWeeklyReturns(
+                    filteredWeeks
+                );
+
+            const ranges =
+                filteredWeeks.map(
+                    week =>
+                        week.high - week.low
+                );
+
+            const dividends =
+                filteredWeeks.map(
+                    week => week.dividend
+                );
+
+            /* Create the price chart */
+            charts.price = new Chart(
+                document.getElementById("priceChart"),
+                {
+                    type: "line",
+
+                    data: {
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Adjusted Close",
+                                data: adjustedClose,
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.25
+                            },
+                            {
+                                label: "Close",
+                                data: close,
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.25
+                            },
+                            {
+                                label: "10-Week MA",
+                                data: movingAverage,
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                borderDash: [6, 4],
+                                tension: 0.25
+                            }
+                        ]
+                    },
+
+                    options: chartOptions(
+                        "Price"
+                    )
+                }
+            );
+
+            /* Create the volume chart */
+            charts.volume = new Chart(
+                document.getElementById("volumeChart"),
+                {
+                    type: "bar",
+
+                    data: {
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Volume",
+                                data: volume,
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+
+                    options: chartOptions(
+                        "Volume"
+                    )
+                }
+            );
+
+            /* Create the weekly return chart */
+            charts.returns = new Chart(
+                document.getElementById("returnChart"),
+                {
+                    type: "bar",
+
+                    data: {
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Weekly Return %",
+                                data: returns,
+
+                                backgroundColor:
+                                    returns.map(
+                                        value =>
+                                            value >= 0
+                                                ? "#22c55e"
+                                                : "#ef4444"
+                                    ),
+
+                                borderWidth: 0
+                            }
+                        ]
+                    },
+
+                    options: chartOptions(
+                        "Return %"
+                    )
+                }
+            );
+
+            /* Create the high-to-low range chart */
+            charts.range = new Chart(
+                document.getElementById("rangeChart"),
+                {
+                    type: "bar",
+
+                    data: {
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "High - Low",
+                                data: ranges,
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+
+                    options: chartOptions(
+                        "Range"
+                    )
+                }
+            );
+
+            /* Create the dividend chart */
+            charts.dividend = new Chart(
+                document.getElementById("dividendChart"),
+                {
+                    type: "bar",
+
+                    data: {
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Dividend",
+                                data: dividends,
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+
+                    options: chartOptions(
+                        "Dividend"
+                    )
+                }
+            );
+        }
+
+        /* Keep chart settings simple and responsive */
+        function chartOptions(yTitle) {
+
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+                    legend: {
+                        position: "bottom"
+                    },
+
+                    tooltip: {
+                        mode: "index",
+                        intersect: false
+                    }
+                },
+
+                scales: {
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 10
+                        }
+                    },
+
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: yTitle
+                        }
+                    }
+                }
+            };
+        }
+
+        /* Fill the table with the latest 12 selected weeks */
+        function updateTable() {
+
+            const body =
+                document.getElementById(
+                    "stockTableBody"
+                );
+
+            body.innerHTML = "";
+
+            if (!filteredWeeks.length) {
+
+                body.innerHTML =
+                    `<tr>
+                        <td colspan="9" class="empty">
+                            No weeks found for the selected dates.
+                        </td>
+                    </tr>`;
+
+                return;
+            }
+
+            const tableWeeks =
+                filteredWeeks
+                    .slice(-12)
+                    .reverse();
+
+            const allReturns =
+                getWeeklyReturns(
+                    filteredWeeks
+                );
+
+            tableWeeks.forEach(
+                function (week) {
+
+                    const index =
+                        filteredWeeks.indexOf(
+                            week
+                        );
+
+                    const weeklyReturn =
+                        allReturns[index];
+
+                    const returnClass =
+                        weeklyReturn === null
+                            ? ""
+                            : weeklyReturn >= 0
+                                ? "positive"
+                                : "negative";
+
+                    const row =
+                        document.createElement("tr");
+
+                    row.innerHTML = `
+                        <td>${week.date}</td>
+                        <td>${formatNumber(week.open)}</td>
+                        <td>${formatNumber(week.high)}</td>
+                        <td>${formatNumber(week.low)}</td>
+                        <td>${formatNumber(week.close)}</td>
+                        <td>${formatNumber(week.adjustedClose)}</td>
+                        <td>${formatLargeNumber(week.volume)}</td>
+                        <td>${formatNumber(week.dividend)}</td>
+                        <td class="${returnClass}">
+                            ${
+                                weeklyReturn === null
+                                    ? "—"
+                                    : weeklyReturn.toFixed(2) + "%"
+                            }
+                        </td>
+                    `;
+
+                    body.appendChild(row);
+                }
+            );
+        }
+
+        /* Create and download a CSV file */
+        function downloadCSV() {
+
+            if (!filteredWeeks.length) {
+                setStatus(
+                    "Load a stock and select a date range first.",
+                    "error"
+                );
+
+                return;
+            }
+
+            const returns =
+                getWeeklyReturns(
+                    filteredWeeks
+                );
+
+            const header = [
+                "Date",
+                "Open",
+                "High",
+                "Low",
+                "Close",
+                "Adjusted Close",
+                "Volume",
+                "Dividend",
+                "Weekly Return %"
+            ];
+
+            const rows = [
+                header
+            ];
+
+            filteredWeeks.forEach(
+                function (week, index) {
+
+                    rows.push([
+                        week.date,
+                        week.open,
+                        week.high,
+                        week.low,
+                        week.close,
+                        week.adjustedClose,
+                        week.volume,
+                        week.dividend,
+                        returns[index] === null
+                            ? ""
+                            : returns[index].toFixed(4)
+                    ]);
+                }
+            );
+
+            /* Escape CSV values safely */
+            const csv =
+                rows
+                    .map(
+                        row =>
+                            row.map(
+                                value =>
+                                    `"${String(value)
+                                        .replace(/"/g, '""')}"`
+                            ).join(",")
+                    )
+                    .join("\n");
+
+            /* Create a temporary download link */
+            const blob =
+                new Blob(
+                    [csv],
+                    {
+                        type: "text/csv;charset=utf-8;"
+                    }
+                );
+
+            const url =
+                URL.createObjectURL(blob);
+
+            const link =
+                document.createElement("a");
+
+            link.href = url;
+
+            link.download =
+                `${currentSymbol || "stock"}_filtered_data.csv`;
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+
+            URL.revokeObjectURL(url);
+        }
+
+        /* Load the selected stock */
+        document.getElementById("loadBtn")
+            .addEventListener(
+                "click",
+                function () {
+                    loadStock(false);
+                }
+            );
+
+        /* Force a new API call */
+        document.getElementById("refreshBtn")
+            .addEventListener(
+                "click",
+                function () {
+                    loadStock(true);
+                }
+            );
+
+        /* Apply date changes without calling the API */
+        document.getElementById("fromDate")
+            .addEventListener(
+                "change",
+                function () {
+                    setActiveQuickButton("");
+                    applyFilters();
+                }
+            );
+
+        /* Apply date changes without calling the API */
+        document.getElementById("toDate")
+            .addEventListener(
+                "change",
+                function () {
+                    setActiveQuickButton("");
+                    applyFilters();
+                }
+            );
+
+        /* Connect all quick date buttons */
+        document
+            .querySelectorAll(
+                ".quick-buttons button"
+            )
+            .forEach(
+                function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            applyQuickRange(
+                                this.dataset.range
+                            );
+                        }
+                    );
+                }
+            );
+
+        /* Connect the CSV download button */
+        document.getElementById("csvBtn")
+            .addEventListener(
+                "click",
+                downloadCSV
+            );
+
+        /* Let Enter in the symbol box behave like Load */
+        document.getElementById("symbol")
+            .addEventListener(
+                "keydown",
+                function (event) {
+
+                    if (event.key === "Enter") {
+                        loadStock(false);
+                    }
+                }
+            );
+
+        /* Update the counter and remembered key when the page opens */
+        updateApiCounter();
+        loadRememberedKey();
+    </script>
+
+</body>
+</html>
